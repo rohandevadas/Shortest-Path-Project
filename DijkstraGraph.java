@@ -1,10 +1,3 @@
-// === CS400 File Header Information ===
-// Name: <Rohan Devadas>
-// Email: <rdevadas@wisc.edu>
-// Group and Team: <your group name: two letters, and team color>
-// Group TA: <name of your group's ta>
-// Lecturer: <Gary Dahl>
-// Notes to Grader: <optional extra notes>
 
 import java.util.PriorityQueue;
 
@@ -170,11 +163,11 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
         
     }
 
-    // TODO: implement 3+ tests in step 4.1
+    
 
     @Test
     /**
-     * This test method tests a map covered in lecture against the shortestPathCost
+     * This test method tests a map against the shortestPathCost
      * and shortestPathData
      */
     public void test1(){
@@ -220,7 +213,7 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
     
     @Test
     /**
-     * This test method tests a map covered in lecture against the shortestPathCost
+     * This test method tests a map against the shortestPathCost
      * and shortestPathData with different start and end points.
      */
     
@@ -268,7 +261,7 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
     
     @Test
     /**
-     * This test method tests a map covered in lecture against the shortestPathCost
+     * This test method tests a map against the shortestPathCost
      * and shortestPathData when there is no connection between nodes.
      */
     public void test3(){
