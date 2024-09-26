@@ -4,5 +4,5 @@ Using the Makefile, enter the command runApp to run the project.
 
 -----IF USING ECLIPSE-----
 
-Create a Javafx file in Eclipse. Add package application; to the top of every file. Then, run the App class.
+Create a Javafx project in Eclipse. Add "package application;" to the top of every file. Then, run the App class.
 
