@@ -1,13 +1,6 @@
-
+package application;
 import java.util.PriorityQueue;
-
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.NoSuchElementException;
 
@@ -57,7 +50,7 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
      * Constructor that sets the map that the graph uses.
      */
     public DijkstraGraph() {
-        super(new PlaceholderMap<>());
+        super(new HashtableMap<>());
     }
 
     /**
@@ -76,41 +69,45 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
      *                                correspond to a graph node
      */
     protected SearchNode computeShortestPath(NodeType start, NodeType end) {
-    	PlaceholderMap<NodeType, EdgeType> visitedNodes = new PlaceholderMap<NodeType, EdgeType>();
-        LinkedList<NodeType> path = new LinkedList<NodeType>();
-    	PriorityQueue<SearchNode> visitingNodes = new PriorityQueue<SearchNode>();
-    	//add start to visited map
-    	visitedNodes.put(start, null);
-    	SearchNode searchStart = new SearchNode(nodes.get(start), 0, null); 
-    	for(Edge i: nodes.get(start).edgesLeaving) { 
-    		visitingNodes.add(new SearchNode(i.successor, (double) i.data + searchStart.cost, searchStart));
-    	}
-    	 SearchNode head = null;
-    	while(!visitingNodes.isEmpty()) {
-    		//remove the head of p.q.
-    		head = visitingNodes.remove();
-    		//if reached the end node, add head to visited and break loop.
-    		if(head.node.data.equals(end)){
-    			visitedNodes.put(head.node.data, this.getEdge(head.predecessor.node.data, head.node.data));
-    			
-    			path.add(head.node.data);
-    			break; 
-    		}
-    		//if head has not been visited, visit it and add its edges to p.q.
-    		if(!visitedNodes.containsKey(head.node.data)) {
-    			visitedNodes.put(head.node.data, this.getEdge(head.predecessor.node.data, head.node.data));
-    			path.add(head.node.data);
-    			
-    			for(Edge i: head.node.edgesLeaving) { 
-    	    		visitingNodes.add(new SearchNode(i.successor, (Integer) i.data + head.cost, head));
-    	    	}
-    		}
-    	}
-    	if(!visitedNodes.containsKey(end)) {
-    		throw new NoSuchElementException();
-    	}
-    	
-    	return head;
+        if (start == null || end == null) {
+            throw new NoSuchElementException("Start and end nodes must not be null");
+        }
+
+        if (!nodes.containsKey(start) || !nodes.containsKey(end)) {
+            throw new NoSuchElementException("Start and end nodes must be in the graph");
+        }
+
+        PriorityQueue<SearchNode> toVisit = new PriorityQueue<>();
+        HashtableMap<NodeType, Boolean> visited = new HashtableMap<>();
+
+        Node startNode = nodes.get(start);
+        toVisit.add(new SearchNode(startNode, 0, null)); //cost is 0 since already there
+
+        // While there are nodes we have not visited yet (and can visit from cur node)
+        while (!toVisit.isEmpty()) {
+            SearchNode current = toVisit.poll(); //get node off top of queue
+
+            if (visited.containsKey(current.node.data)) {
+                continue;
+            }
+
+            visited.put(current.node.data, true);
+
+            if (current.node.data.equals(end)) {
+                return current;
+            }
+
+            for (Edge edge : current.node.edgesLeaving) {
+                Node neighbor = edge.successor;
+                double cost = current.cost + edge.data.doubleValue();
+
+                //Add a potential new path to the priority queue
+                toVisit.add(new SearchNode(neighbor, cost, current));
+            }
+        }
+
+        // If here then there is no path from start to end
+        throw new NoSuchElementException("No path from start to end");
     }
 
     /**
@@ -126,20 +123,22 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
      * @return list of data item from node along this shortest path
      */
     public List<NodeType> shortestPathData(NodeType start, NodeType end) {
-    	SearchNode endNode = computeShortestPath(start, end);
-        
-    	LinkedList<NodeType> path = new LinkedList<NodeType>();
-    	while(endNode != null) {
-    		path.add(endNode.node.data);
-    		endNode = endNode.predecessor;
-    	}
-    	LinkedList<NodeType> copyPath = new LinkedList<NodeType>();
-    	for(int i = path.size()-1; i>=0; i--) {
-    		copyPath.add(path.get(i));
-    	}
-        return copyPath; 
+        List <NodeType> path = new LinkedList<>();
+
+        try {
+            SearchNode current = computeShortestPath(start, end);
+
+            while (current != null) {
+                path.add(0, current.node.data);
+                current = current.predecessor;
+            }
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException("No path from start to end.");
+        }
+
+        return path;
 	}
-    
+
     /**
      * Returns the cost of the path (sum over edge weights) of the shortest
      * path freom the node containing the start data to the node containing the
@@ -151,196 +150,16 @@ public class DijkstraGraph<NodeType, EdgeType extends Number>
      * @return the cost of the shortest path between these nodes
      */
     public double shortestPathCost(NodeType start, NodeType end) {
-    	SearchNode endNode = computeShortestPath(start, end);
-    	double cost = 0;
-    	
-    	while(endNode != null) {
-    		cost+=endNode.cost;
-    		endNode = endNode.predecessor;
-    	}
+        double cost = 0.0;
+
+        try {
+            cost = computeShortestPath(start, end).cost;
+        } catch (NoSuchElementException e) {
+            throw new NoSuchElementException("No path from start to end.");
+        }
+
         return cost;
-    	
-        
     }
 
-    
-
-    @Test
-    /**
-     * This test method tests a map against the shortestPathCost
-     * and shortestPathData
-     */
-    public void test1(){
-	DijkstraGraph<String, Integer> dGraph = new DijkstraGraph<String, Integer>();
-	
-	dGraph.insertNode("A");
-	dGraph.insertNode("B");
-	dGraph.insertNode("C");
-	dGraph.insertNode("D");
-	dGraph.insertNode("E");
-	
-	//insert A's edges.
-	dGraph.insertEdge("A", "B", 15);
-	dGraph.insertEdge("A", "C", 1);
-	dGraph.insertEdge("A", "D", 4);
-	//insert B's Edges.
-	dGraph.insertEdge("B", "A", 15);
-	dGraph.insertEdge("B", "D", 2);
-	dGraph.insertEdge("B", "E", 1);
-	//insert C's edges.
-	dGraph.insertEdge("C", "A", 1);
-	dGraph.insertEdge("C", "E", 10);
-	//insert D's edges.
-	dGraph.insertEdge("D", "A", 4);
-	dGraph.insertEdge("D", "B", 2);
-	dGraph.insertEdge("D", "E", 10);
-	//insert E's edges.
-	dGraph.insertEdge("E", "D", 10);
-	dGraph.insertEdge("E", "C", 1);
-	//check if cost is correct.
-	assertEquals(dGraph.shortestPathCost("A", "E"), 7);
-	List<String> expected = new LinkedList<String>();
-	expected.add("A"); 
-	expected.add("D");
-	expected.add("B");
-	expected.add("E");
-	//check if path is correct.
-	List<String> result = dGraph.shortestPathData("A", "E");
-	for(int i = 0; i<result.size(); i++) {
-		assertEquals(result.get(i), expected.get(i));
-	}
-    }
-    
-    @Test
-    /**
-     * This test method tests a map against the shortestPathCost
-     * and shortestPathData with different start and end points.
-     */
-    
-    public void test2() {
-    	DijkstraGraph<String, Integer> dGraph = new DijkstraGraph<String, Integer>();
-    	
-    	dGraph.insertNode("A");
-    	dGraph.insertNode("B");
-    	dGraph.insertNode("C");
-    	dGraph.insertNode("D");
-    	dGraph.insertNode("E");
-    	
-    	//insert A's edges.
-    	dGraph.insertEdge("A", "B", 15);
-    	dGraph.insertEdge("A", "C", 1);
-    	dGraph.insertEdge("A", "D", 4);
-    	//insert B's Edges.
-    	dGraph.insertEdge("B", "A", 15);
-    	dGraph.insertEdge("B", "D", 2);
-    	dGraph.insertEdge("B", "E", 1);
-    	//insert C's edges.
-    	dGraph.insertEdge("C", "A", 1);
-    	dGraph.insertEdge("C", "E", 10);
-    	//insert D's edges.
-    	dGraph.insertEdge("D", "A", 4);
-    	dGraph.insertEdge("D", "B", 2);
-    	dGraph.insertEdge("D", "E", 10);
-    	//insert E's edges.
-    	dGraph.insertEdge("E", "D", 10);
-    	dGraph.insertEdge("E", "C", 1);
-    	//checks if cost is correct.
-    	assertEquals(dGraph.shortestPathCost("C", "E"), 8);
-    	List<String> expected = new LinkedList<String>();
-    	expected.add("C"); 
-    	expected.add("A"); 
-    	expected.add("D");
-    	expected.add("B");
-    	expected.add("E");
-    	//checks if path is correct.
-    	List<String> result = dGraph.shortestPathData("C", "E");
-    	for(int i = 0; i<result.size(); i++) {
-    		assertEquals(result.get(i), expected.get(i));
-    	}
-    }
-    
-    @Test
-    /**
-     * This test method tests a map against the shortestPathCost
-     * and shortestPathData when there is no connection between nodes.
-     */
-    public void test3(){
-    	DijkstraGraph<String, Integer> dGraph = new DijkstraGraph<String, Integer>();
-    	
-    	dGraph.insertNode("A");
-    	dGraph.insertNode("B");
-    	dGraph.insertNode("C");
-    	dGraph.insertNode("D");
-    	dGraph.insertNode("E");
-    	
-    	//insert A's edges.
-    	dGraph.insertEdge("A", "B", 15);
-    	dGraph.insertEdge("A", "D", 4);
-    	//insert B's Edges.
-    	dGraph.insertEdge("B", "A", 15);
-    	dGraph.insertEdge("B", "D", 2);
-    	dGraph.insertEdge("B", "E", 1);
-    	//insert C's edges.
-    	dGraph.insertEdge("C", "A", 1);
-    	dGraph.insertEdge("C", "E", 10);
-    	//insert D's edges.
-    	dGraph.insertEdge("D", "A", 4);
-    	dGraph.insertEdge("D", "B", 2);
-    	dGraph.insertEdge("D", "E", 10);
-    	//insert E's edges.
-    	dGraph.insertEdge("E", "D", 10);
-    	
-    	try {
-    		dGraph.shortestPathData("D", "C");
-    		assertEquals(0,1, "no exception was called.");
-    	} catch(NoSuchElementException e) {
-    		assertEquals(1,1, "correct exception called.");
-    	}
-    	
-    }
-    
-    public static void main(String[] args) {
-    	DijkstraGraph<String, Integer> dGraph = new DijkstraGraph<String, Integer>();
-    	
-    	dGraph.insertNode("A");
-    	dGraph.insertNode("B");
-    	dGraph.insertNode("C");
-    	dGraph.insertNode("D");
-    	dGraph.insertNode("E");
-    	
-    	//insert A's edges.
-    	dGraph.insertEdge("A", "B", 15);
-    	dGraph.insertEdge("A", "C", 1);
-    	dGraph.insertEdge("A", "D", 4);
-    	//insert B's Edges.
-    	dGraph.insertEdge("B", "A", 15);
-    	dGraph.insertEdge("B", "D", 2);
-    	dGraph.insertEdge("B", "E", 1);
-    	//insert C's edges.
-    	dGraph.insertEdge("C", "A", 1);
-    	dGraph.insertEdge("C", "E", 10);
-    	//insert D's edges.
-    	dGraph.insertEdge("D", "A", 4);
-    	dGraph.insertEdge("D", "B", 2);
-    	dGraph.insertEdge("D", "E", 10);
-    	//insert E's edges.
-    	dGraph.insertEdge("E", "D", 10);
-    	dGraph.insertEdge("E", "C", 1);
-    	
-    	
-    	List<String> expected = new LinkedList<String>();
-    	expected.add("A"); 
-    	expected.add("D");
-    	expected.add("B");
-    	expected.add("E");
-    	//check if path is correct.
-    	List<String> result = dGraph.shortestPathData("A", "E");
-    	
-    	for(int i = 0; i<result.size(); i++) {
-    		if(result.get(i).equals(expected.get(i))) {
-    			System.out.println(result.get(i));
-    		}
-    	}
-    }
     
 }
